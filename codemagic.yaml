@@ -1,0 +1,138 @@
+workflows:
+  # Workflow for running tests and code analysis
+  test-workflow:
+    name: Test and Analyze
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - # Add your environment variable groups here if needed
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get Flutter dependencies
+        script: |
+          flutter pub get
+      - name: Run Flutter analyze
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run tests
+        script: |
+          flutter test --coverage
+    artifacts:
+      - coverage/**/*
+    publishing:
+      email:
+        recipients:
+          - sunilanddeveloper@gmail.com  # Replace with your email
+        notify:
+          success: true
+          failure: false
+
+  # Workflow for building Android APK
+  android-workflow:
+    name: Build Android APK
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - # Add your environment variable groups here if needed
+      flutter: stable
+      java: 17
+    scripts:
+      - name: Get Flutter dependencies
+        script: |
+          flutter pub get
+      - name: Run Flutter analyze
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run tests
+        script: |
+          flutter test
+      - name: Build Android APK
+        script: |
+          flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - sunilanddeveloper@gmail.com  # Replace with your email
+        notify:
+          success: true
+          failure: true
+
+  # Workflow for building Android App Bundle (AAB)
+  android-aab-workflow:
+    name: Build Android App Bundle
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - # Add your environment variable groups here if needed
+      flutter: stable
+      java: 17
+    scripts:
+      - name: Get Flutter dependencies
+        script: |
+          flutter pub get
+      - name: Run Flutter analyze
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run tests
+        script: |
+          flutter test
+      - name: Build Android App Bundle
+        script: |
+          flutter build appbundle --release
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+    publishing:
+      email:
+        recipients:
+          - sunilanddeveloper@gmail.com  # Replace with your email
+        notify:
+          success: true
+          failure: true
+
+  # Workflow for building iOS (requires code signing setup)
+  ios-workflow:
+    name: Build iOS
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - # Add your code signing groups here
+        # - app_store_credentials  # Uncomment and configure if needed
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get Flutter dependencies
+        script: |
+          flutter pub get
+      - name: Run Flutter analyze
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run tests
+        script: |
+          flutter test
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install
+      - name: Build iOS
+        script: |
+          flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - sunilanddeveloper@gmail.com  # Replace with your email
+        notify:
+          success: true
+          failure: true
+
