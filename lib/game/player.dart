@@ -1,10 +1,9 @@
 import 'package:flame/components.dart';
-import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Player component for the 2D game
-class Player extends PositionComponent with HasGameRef, KeyboardHandler {
+class Player extends PositionComponent with HasGameReference, KeyboardHandler {
   static const double speed = 200.0;
   static const double playerSize = 40.0;
 
@@ -14,7 +13,7 @@ class Player extends PositionComponent with HasGameRef, KeyboardHandler {
   @override
   Future<void> onLoad() async {
     size = Vector2(playerSize, playerSize);
-    position = gameRef.size / 2;
+    position = game.size / 2;
     anchor = Anchor.center;
   }
 
@@ -48,8 +47,8 @@ class Player extends PositionComponent with HasGameRef, KeyboardHandler {
     position += velocity * dt;
     
     // Keep player within bounds
-    position.x = position.x.clamp(size.x / 2, gameRef.size.x - size.x / 2);
-    position.y = position.y.clamp(size.y / 2, gameRef.size.y - size.y / 2);
+    position.x = position.x.clamp(size.x / 2, game.size.x - size.x / 2);
+    position.y = position.y.clamp(size.y / 2, game.size.y - size.y / 2);
     
     // Apply friction
     velocity *= 0.9;

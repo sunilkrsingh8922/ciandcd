@@ -2,9 +2,9 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 /// World component for the game environment
-class GameWorld extends Component with HasGameRef {
+class GameWorld extends Component with HasGameReference {
   final Paint gridPaint = Paint()
-    ..color = Colors.white.withOpacity(0.1)
+    ..color = Colors.white.withValues(alpha: 0.1)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.0;
 
@@ -14,19 +14,19 @@ class GameWorld extends Component with HasGameRef {
     const gridSize = 50.0;
     
     // Vertical lines
-    for (double x = 0; x < gameRef.size.x; x += gridSize) {
+    for (double x = 0; x < game.size.x; x += gridSize) {
       canvas.drawLine(
         Offset(x, 0),
-        Offset(x, gameRef.size.y),
+        Offset(x, game.size.y),
         gridPaint,
       );
     }
     
     // Horizontal lines
-    for (double y = 0; y < gameRef.size.y; y += gridSize) {
+    for (double y = 0; y < game.size.y; y += gridSize) {
       canvas.drawLine(
         Offset(0, y),
-        Offset(gameRef.size.x, y),
+        Offset(game.size.x, y),
         gridPaint,
       );
     }
