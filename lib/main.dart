@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'game_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -50,6 +51,20 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               'hello world',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const GamePage()),
+                );
+              },
+              icon: const Icon(Icons.sports_esports),
+              label: const Text('Play Ball Catch Game'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
             ),
           ],
         ),
