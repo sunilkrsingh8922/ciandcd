@@ -149,7 +149,7 @@ pipeline {
                         echo "Checking for flutter_aws_chime plugin..."
                         PLUGIN_DIR=$(find ~/.pub-cache -name "*flutter_aws_chime*" -type d 2>/dev/null | head -1)
                         if [ -n "$PLUGIN_DIR" ]; then
-                            BUILD_GRADLE=  $(find "$PLUGIN_DIR" -name "build.gradle" -o -name "build.gradle.kts" 2>/dev/null | head -1)
+                            BUILD_GRADLE=$(find "$PLUGIN_DIR" -name "build.gradle" -o -name "build.gradle.kts" 2>/dev/null | head -1)
                             if [ -n "$BUILD_GRADLE" ]; then
                                 if ! grep -q "namespace" "$BUILD_GRADLE" 2>/dev/null; then
                                     cp "$BUILD_GRADLE" "$BUILD_GRADLE.backup"
