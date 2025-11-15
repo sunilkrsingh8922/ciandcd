@@ -100,13 +100,6 @@ pipeline {
         }
         
         stage('Build Android APK') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                    branch 'develop'
-                }
-            }
             steps {
                 script {
                     bat '''
