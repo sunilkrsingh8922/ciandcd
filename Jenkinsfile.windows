@@ -1,0 +1,235 @@
+pipeline {
+    agent any
+    
+    environment {
+        FLUTTER_VERSION = 'stable'
+        JAVA_VERSION = '17'
+        ANDROID_SDK_ROOT = "${env.ANDROID_HOME ?: 'C:\\Android\\Sdk'}"
+    }
+    
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+    
+    tools {
+        // Make sure Flutter and Java are installed in Jenkins
+        // Configure in Jenkins: Manage Jenkins -> Global Tool Configuration
+        // Flutter: Add Flutter SDK path or use Flutter plugin
+        // Java: Add JDK installation
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    echo "Checking out code from ${env.GIT_BRANCH}"
+                }
+            }
+        }
+        
+        stage('Setup Flutter') {
+            steps {
+                script {
+                    // Check if Flutter is available
+                    bat '''
+                        @echo off
+                        where flutter >nul 2>&1
+                        if %ERRORLEVEL% NEQ 0 (
+                            echo Flutter not found in PATH. Please install Flutter in Jenkins.
+                            exit /b 1
+                        )
+                        flutter --version
+                        flutter doctor
+                    '''
+                }
+            }
+        }
+        
+        stage('Get Dependencies') {
+            steps {
+                bat '''
+                    flutter pub get
+                    flutter pub upgrade
+                '''
+            }
+        }
+        
+        stage('Code Analysis') {
+            steps {
+                bat 'flutter analyze --no-fatal-infos'
+            }
+            post {
+                success {
+                    echo 'Code analysis passed!'
+                }
+                failure {
+                    echo 'Code analysis failed!'
+                }
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                bat 'flutter test --coverage'
+            }
+            post {
+                always {
+                    // Publish test results
+                    publishTestResults testResultsPattern: 'test/**/*.xml'
+                    // Publish coverage reports if available
+                    script {
+                        def coverageFile = 'coverage/lcov.info'
+                        if (fileExists(coverageFile)) {
+                            publishCoverageReports(
+                                reportFile: coverageFile,
+                                reportName: 'Flutter Test Coverage'
+                            )
+                        }
+                    }
+                }
+                success {
+                    echo 'All tests passed!'
+                }
+                failure {
+                    echo 'Tests failed!'
+                }
+            }
+        }
+        
+        stage('Build Android APK') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                    branch 'develop'
+                }
+            }
+            steps {
+                script {
+                    bat '''
+                        @echo off
+                        REM Patch flutter_aws_chime plugin if it exists
+                        echo Checking for flutter_aws_chime plugin...
+                        for /d /r "%USERPROFILE%\.pub-cache" %%d in (*flutter_aws_chime*) do (
+                            set PLUGIN_DIR=%%d
+                            goto :found_plugin
+                        )
+                        :found_plugin
+                        if defined PLUGIN_DIR (
+                            for /r "%PLUGIN_DIR%" %%f in (build.gradle build.gradle.kts) do (
+                                findstr /C:"namespace" "%%f" >nul 2>&1
+                                if errorlevel 1 (
+                                    copy "%%f" "%%f.backup" >nul
+                                    echo     namespace = "com.flutter_aws_chime" >> "%%f"
+                                    echo Plugin patched successfully
+                                )
+                            )
+                        )
+                        
+                        REM Build APK
+                        flutter build apk --release
+                        echo APK built successfully at: build\\app\\outputs\\flutter-apk\\app-release.apk
+                    '''
+                }
+            }
+            post {
+                success {
+                    echo 'Android APK built successfully!'
+                    archiveArtifacts artifacts: 'build/app/outputs/flutter-apk/*.apk', fingerprint: true
+                }
+                failure {
+                    echo 'Android APK build failed!'
+                }
+            }
+        }
+        
+        stage('Build Android App Bundle') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
+            }
+            steps {
+                script {
+                    bat '''
+                        @echo off
+                        REM Patch flutter_aws_chime plugin if it exists
+                        echo Checking for flutter_aws_chime plugin...
+                        for /d /r "%USERPROFILE%\.pub-cache" %%d in (*flutter_aws_chime*) do (
+                            set PLUGIN_DIR=%%d
+                            goto :found_plugin
+                        )
+                        :found_plugin
+                        if defined PLUGIN_DIR (
+                            for /r "%PLUGIN_DIR%" %%f in (build.gradle build.gradle.kts) do (
+                                findstr /C:"namespace" "%%f" >nul 2>&1
+                                if errorlevel 1 (
+                                    copy "%%f" "%%f.backup" >nul
+                                    echo     namespace = "com.flutter_aws_chime" >> "%%f"
+                                    echo Plugin patched successfully
+                                )
+                            )
+                        )
+                        
+                        REM Build App Bundle
+                        flutter build appbundle --release
+                        echo AAB built successfully at: build\\app\\outputs\\bundle\\release\\app-release.aab
+                    '''
+                }
+            }
+            post {
+                success {
+                    echo 'Android App Bundle built successfully!'
+                    archiveArtifacts artifacts: 'build/app/outputs/bundle/release/*.aab', fingerprint: true
+                }
+                failure {
+                    echo 'Android App Bundle build failed!'
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            // Archive coverage reports
+            archiveArtifacts artifacts: 'coverage/**/*', allowEmptyArchive: true
+            
+            // Publish test results summary
+            script {
+                def testResults = bat(
+                    script: 'dir /s /b test\\*.xml 2>nul',
+                    returnStdout: true
+                ).trim()
+                if (testResults) {
+                    publishTestResults testResultsPattern: testResults
+                }
+            }
+        }
+        success {
+            echo 'Pipeline succeeded!'
+            // Send success notification (configure email/Slack/etc.)
+            // emailext (
+            //     subject: "Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+            //     body: "Build succeeded for ${env.GIT_BRANCH}",
+            //     to: "sunilanddeveloper@gmail.com"
+            // )
+        }
+        failure {
+            echo 'Pipeline failed!'
+            // Send failure notification
+            // emailext (
+            //     subject: "Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+            //     body: "Build failed for ${env.GIT_BRANCH}. Check console output for details.",
+            //     to: "sunilanddeveloper@gmail.com"
+            // )
+        }
+        unstable {
+            echo 'Pipeline is unstable!'
+        }
+    }
+}
+
